@@ -113,30 +113,37 @@ module Crocodoc
     result = nil
     http_code = nil
     
-    timeout = 10
-    if post_params && post_params.length > 0
-      response = RestClient::Request.execute(
-        :method => :post,
-        :url => url,
-        :payload => post_params,
-        :headers => {:params => get_params},
-        :timeout => timeout,
-        :open_timeout => timeout
-      ) {|response, request, result| result }
+    begin
+      timeout = 10
+      if post_params && post_params.length > 0
+        response = RestClient::Request.execute(
+          :method => :post,
+          :url => url,
+          :payload => post_params,
+          :headers => {:params => get_params},
+          :timeout => timeout,
+          :open_timeout => timeout
+        ) {|response, request, result| result }
 
-      result = RestClient::Request.decode(response['content-encoding'], response.body)
-      http_code = Integer(response.code)
-    else
-      response = RestClient::Request.execute(
-        :method => :get,
-        :url => url,
-        :headers => {:params => get_params},
-        :timeout => timeout,
-        :open_timeout => timeout
-      ) {|response, request, result| result }
+        result = RestClient::Request.decode(response['content-encoding'], response.body)
+        http_code = Integer(response.code)
+      else
+        response = RestClient::Request.execute(
+          :method => :get,
+          :url => url,
+          :headers => {:params => get_params},
+          :timeout => timeout,
+          :open_timeout => timeout
+        ) {|response, request, result| result }
 
-      result = RestClient::Request.decode(response['content-encoding'], response.body)
-      http_code = Integer(response.code)
+        result = RestClient::Request.decode(response['content-encoding'], response.body)
+        http_code = Integer(response.code)
+      end
+    rescue RestClient::RequestTimeout => ex
+      return self._error('server_response_timeout', self.name, __method__, {
+        get_params: get_params,
+        post_params: post_params
+      })
     end
     
     if is_json
